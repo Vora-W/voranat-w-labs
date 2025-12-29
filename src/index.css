@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Apply Poppins font to entire page */
+body {
+  font-family: "Poppins", sans-serif;
+}
+
 @theme {
   /* Font Family - Set as default */
   --font-family-sans: "Poppins", sans-serif;
