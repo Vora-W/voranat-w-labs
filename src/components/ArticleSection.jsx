@@ -1,12 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, ChevronDown } from "lucide-react";
-import blogPosts from "../data/blogPosts";
+// import blogPosts from "../data/blogPosts";
+import { fetchBlogPosts } from "../api/blogPost";
 import BlogCard from "./BlogCard";
 
 const categories = ["Highlight", "Cat", "Inspiration", "General"];
 
 function ArticleSection() {
   const [selectedCategory, setSelectedCategory] = useState("Highlight");
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [searchText, setSearchText] = useState("");
+
+  const getBlogPosts = async () => {
+    try {
+      const getData = await fetchBlogPosts();
+      setBlogPosts(getData);
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+    }
+  };
+
+  useEffect(() => {
+    getBlogPosts();
+  }, []);
+
+  const handleSearch = (e) => {
+    setSearchText(e.target.value);
+  };
 
   return (
     <section className="bg-brown-100">
@@ -25,6 +45,8 @@ function ArticleSection() {
               type="text"
               placeholder="Search"
               className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-600 placeholder:text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400"
+              value={searchText}
+              onChange={handleSearch}
             />
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-400" />
           </div>
@@ -74,6 +96,8 @@ function ArticleSection() {
               type="text"
               placeholder="Search"
               className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-600 placeholder:text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400"
+              value={searchText}
+              onChange={handleSearch}
             />
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-400" />
           </div>
@@ -83,11 +107,14 @@ function ArticleSection() {
         <div className="px-4 py-6 md:px-0 md:py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-5 md:w-[1200px] md:mx-auto justify-items-center md:justify-items-stretch">
             {blogPosts
-              .filter((post) =>
-                selectedCategory === "Highlight"
-                  ? true
-                  : post.category === selectedCategory
-              )
+              .filter((post) => {
+                const matchCategory =
+                  selectedCategory === "Highlight" || post.category === selectedCategory;
+                const matchSearch =
+                  post.title.toLowerCase().includes(searchText.toLowerCase()) ||
+                  post.description.toLowerCase().includes(searchText.toLowerCase());
+                return matchCategory && matchSearch;
+              })
               .map((post) => (
                 <BlogCard
                   key={post.id}
