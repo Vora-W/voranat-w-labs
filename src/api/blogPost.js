@@ -9,10 +9,19 @@ const formatDate = (isoDate) => {
     });
 };
 
-export const fetchBlogPosts = async (selectedCategory) => {
-    const response = await axios.get(selectedCategory === "Highlight"
-        ? 'https://blog-post-project-api.vercel.app/posts'
-        : `https://blog-post-project-api.vercel.app/posts?category=${selectedCategory}`);
+export const fetchBlogPosts = async (category, page = 1, limit = 6) => {
+    const categoryParam = category === "Highlight" ? "" : category;
+
+    const response = await axios.get(
+        "https://blog-post-project-api.vercel.app/posts",
+        {
+            params: {
+                page: page,
+                limit: limit,
+                category: categoryParam,
+            },
+        }
+    );
     console.log('response.data:', response.data);
 
     const posts = response.data.posts.map(post => ({
@@ -20,5 +29,9 @@ export const fetchBlogPosts = async (selectedCategory) => {
         date: formatDate(post.date)
     }));
 
-    return posts;
+    return {
+        posts,
+        currentPage: response.data.currentPage,
+        totalPages: response.data.totalPages,
+    };
 };

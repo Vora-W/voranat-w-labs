@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, LoaderCircle, Ellipsis } from "lucide-react";
 import { fetchBlogPosts } from "../api/blogPost";
 import BlogCard from "./BlogCard";
 
@@ -13,29 +13,54 @@ function ArticleSection() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
+  // โหลดโพสต์เมื่อ page หรือ category เปลี่ยน
   useEffect(() => {
-    //ย้าย async logic เข้าไปใน useEffect โดยตรง โดยใช้ IIFE (Immediately Invoked Function Expression)
-    (async () => {
-      // ป้องกันการโหลดซ้ำถ้ายังโหลดไม่เสร็จ
-      if (isLoading) return;
-      setIsLoading(true);  // ← เริ่มโหลด
+    const getBlogPosts = async () => {
+      if (isLoading) return; // ป้องกันการโหลดซ้ำถ้ายังโหลดไม่เสร็จ
+
+      setIsLoading(true);
       try {
-        const getData = await fetchBlogPosts(selectedCategory);
-        setBlogPosts(getData); // ← setState อยู่ใน async callback
+        const postsData = await fetchBlogPosts(selectedCategory, page, 6);
+
+        // ถ้า page 1 ให้ replace, ถ้าไม่ใช่ให้ append (load more)
+        if (page === 1) {
+          setBlogPosts(postsData.posts);
+        } else {
+          setBlogPosts((prevPosts) => [...prevPosts, ...postsData.posts]);
+        }
+
+        // ตรวจสอบว่าถึงหน้าสุดท้ายหรือยัง
+        if (postsData.currentPage >= postsData.totalPages) {
+          setHasMore(false);
+        }
       } catch (error) {
-        console.error("Error fetching posts:", error); // ← ไม่สามารถโหลดข้อมูลได้
+        console.error("Error fetching posts:", error);
       } finally {
-        setIsLoading(false);  // ← โหลดเสร็จ
+        setIsLoading(false);
       }
-    })(); // ← IIFE: เรียกฟังก์ชันทันที
-  }, [selectedCategory]);
+    };
+
+    getBlogPosts();
+    // ข้าม ESLint warning เพราะถ้าใส่ isLoading ใน dependency array จะเกิด infinite loop
+    // (isLoading เปลี่ยน → useEffect รัน → setIsLoading(true) → isLoading เปลี่ยน → loop ไม่สิ้นสุด)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, selectedCategory]);
+
+  // Handler สำหรับเปลี่ยน category (reset ก่อนแล้วค่อยเปลี่ยน)
+  const handleCategoryChange = (category) => {
+    if (category === selectedCategory) return; // ไม่ทำอะไรถ้าเลือก category เดิม
+    setPage(1);
+    setHasMore(true);
+    setSelectedCategory(category);
+  };
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
   };
 
+  // ฟังก์ชันเพิ่มหน้า
   const handleLoadMore = () => {
-    setPage(page + 1);
+    setPage((prevPage) => prevPage + 1);
   };
 
   return (
@@ -68,7 +93,7 @@ function ArticleSection() {
           <div className="relative">
             <select
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400 appearance-none cursor-pointer"
             >
               {categories.map((category) => (
@@ -88,8 +113,8 @@ function ArticleSection() {
             {categories.map((category) => (
               <button
                 key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`h-12 px-5 py-3 rounded-lg text-body-1 transition-colors ${selectedCategory === category
+                onClick={() => handleCategoryChange(category)}
+                className={`h-12 px-5 py-3 rounded-lg text-body-1 cursor-pointer transition-colors ${selectedCategory === category
                   ? "bg-brown-300 text-brown-500"
                   : "text-brown-400 hover:bg-brown-100"
                   }`}
@@ -117,12 +142,11 @@ function ArticleSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-5 md:w-[1200px] md:mx-auto justify-items-center md:justify-items-stretch">
             {blogPosts
               .filter((post) => {
-                const matchCategory =
-                  selectedCategory === "Highlight" || post.category === selectedCategory;
+                // Filter เฉพาะ search (category filter ทำฝั่ง API แล้ว)
                 const matchSearch =
                   post.title.toLowerCase().includes(searchText.toLowerCase()) ||
                   post.description.toLowerCase().includes(searchText.toLowerCase());
-                return matchCategory && matchSearch;
+                return matchSearch;
               })
               .map((post) => (
                 <BlogCard
@@ -137,16 +161,31 @@ function ArticleSection() {
               ))}
           </div>
         </div>
-        {/* View More */}
-        <div className="flex justify-center items-center">
-          <button 
-          className="pt-6 md:pt-12 pb-14 md:pb-22 text-body-1 text-brown-600 underline hover:text-brown-400 transition-colors"
-          onClick={handleLoadMore}
-          disabled={!hasMore || isLoading}
-          >
-            {isLoading ? "Loading..." : "View more"}
-          </button>
-        </div>
+
+        {/* View More - ซ่อนปุ่มเมื่อไม่มีข้อมูลให้โหลดเพิ่มแล้ว */}
+        {hasMore && (
+          <div className="flex justify-center items-center">
+            <button
+              className="pt-6 md:pt-12 pb-14 md:pb-22 text-body-1 text-brown-600"
+              onClick={handleLoadMore}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <LoaderCircle className="animate-spin w-10 h-10 mr-2" />
+                  <span className="flex flex-row items-end-safe">
+                    Loading
+                    <Ellipsis className="w-5 h-5 animate-pulse pt-0.5" />
+                  </span>
+                </div>
+              ) : (
+                <div className="underline cursor-pointer hover:text-brown-400 transition-colors">
+                  View more
+                </div>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </section>
 
