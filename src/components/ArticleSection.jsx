@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Search, ChevronDown, LoaderCircle, Ellipsis } from "lucide-react";
 import { fetchBlogPosts } from "../api/blogPost";
 import BlogCard from "./BlogCard";
+import SearchInput from "./SearchInput";
+import LoadMoreButton from "./LoadMoreButton";
+import CategoryFilter from "./CategoryFilter";
 
 const categories = ["Highlight", "Cat", "Inspiration", "General"];
 
@@ -75,66 +77,30 @@ function ArticleSection() {
         {/* Mobile: Search & Filter - bg-brown-200 */}
         <div className="bg-brown-200 px-4 py-4 md:hidden">
           {/* Search Input */}
-          <div className="relative mb-4">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-600 placeholder:text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400"
-              value={searchText}
-              onChange={handleSearch}
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-400" />
-          </div>
+          <SearchInput value={searchText} onChange={handleSearch} className="mb-4" />
 
           {/* Category Label */}
           <p className="text-body-1 text-brown-400 mb-2">Category</p>
 
           {/* Category Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedCategory}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400 appearance-none cursor-pointer"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-400 pointer-events-none" />
-          </div>
+          <CategoryFilter
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onChange={handleCategoryChange}
+          />
         </div>
 
         {/* Desktop: Category Tabs & Search */}
         <div className="hidden md:flex items-center justify-between bg-brown-200 px-6 py-4 rounded-2xl">
           {/* Category Tabs */}
-          <div className="flex items-center gap-2.5 bg-brown-200 rounded-lg p-1">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => handleCategoryChange(category)}
-                className={`h-12 px-5 py-3 rounded-lg text-body-1 cursor-pointer transition-colors ${selectedCategory === category
-                  ? "bg-brown-300 text-brown-500"
-                  : "text-brown-400 hover:bg-brown-100"
-                  }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+          <CategoryFilter
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onChange={handleCategoryChange}
+          />
 
           {/* Search Input */}
-          <div className="relative w-[360px]">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full h-12 py-3 pl-4 pr-10 bg-white rounded-lg text-body-1 text-brown-600 placeholder:text-brown-400 border border-brown-300 focus:outline-none focus:border-brown-400"
-              value={searchText}
-              onChange={handleSearch}
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brown-400" />
-          </div>
+          <SearchInput value={searchText} onChange={handleSearch} className="w-[360px]" />
         </div>
 
         {/* Blog Cards Grid */}
@@ -165,25 +131,7 @@ function ArticleSection() {
         {/* View More - ซ่อนปุ่มเมื่อไม่มีข้อมูลให้โหลดเพิ่มแล้ว */}
         {hasMore && (
           <div className="flex justify-center items-center">
-            <button
-              className="pt-6 md:pt-12 pb-14 md:pb-22 text-body-1 text-brown-600"
-              onClick={handleLoadMore}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex flex-col items-center gap-2">
-                  <LoaderCircle className="animate-spin w-10 h-10 mr-2" />
-                  <span className="flex flex-row items-end-safe">
-                    Loading
-                    <Ellipsis className="w-5 h-5 animate-pulse pt-0.5" />
-                  </span>
-                </div>
-              ) : (
-                <div className="underline cursor-pointer hover:text-brown-400 transition-colors">
-                  View more
-                </div>
-              )}
-            </button>
+            <LoadMoreButton isLoading={isLoading} onClick={handleLoadMore} />
           </div>
         )}
       </div>
