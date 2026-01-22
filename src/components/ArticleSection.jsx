@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchBlogPosts } from "../api/blogPost";
 import BlogCard from "./BlogCard";
 import SearchInput from "./SearchInput";
@@ -8,12 +9,19 @@ import CategoryFilter from "./CategoryFilter";
 const categories = ["Highlight", "Cat", "Inspiration", "General"];
 
 function ArticleSection() {
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("Highlight");
   const [blogPosts, setBlogPosts] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Navigate to post detail page
+  const handleNavigate = (postId) => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    navigate(`/post/view/${postId}`);
+  };
 
   // โหลดโพสต์เมื่อ page หรือ category เปลี่ยน
   useEffect(() => {
@@ -22,7 +30,7 @@ function ArticleSection() {
 
       setIsLoading(true);
       try {
-        const postsData = await fetchBlogPosts(selectedCategory, page, 6);
+        const postsData = await fetchBlogPosts({ category: selectedCategory, page, limit: 6 });
 
         // ถ้า page 1 ให้ replace, ถ้าไม่ใช่ให้ append (load more)
         if (page === 1) {
@@ -123,6 +131,7 @@ function ArticleSection() {
                   description={post.description}
                   author={post.author}
                   date={post.date}
+                  onClick={() => handleNavigate(post.id)}
                 />
               ))}
           </div>
