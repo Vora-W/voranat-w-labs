@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Search, ChevronDown } from "lucide-react";
-// import blogPosts from "../data/blogPosts";
 import { fetchBlogPosts } from "../api/blogPost";
 import BlogCard from "./BlogCard";
 
@@ -10,22 +9,33 @@ function ArticleSection() {
   const [selectedCategory, setSelectedCategory] = useState("Highlight");
   const [blogPosts, setBlogPosts] = useState([]);
   const [searchText, setSearchText] = useState("");
-
-  const getBlogPosts = async () => {
-    try {
-      const getData = await fetchBlogPosts();
-      setBlogPosts(getData);
-    } catch (error) {
-      console.error("Error fetching blog posts:", error);
-    }
-  };
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    getBlogPosts();
-  }, []);
+    //ย้าย async logic เข้าไปใน useEffect โดยตรง โดยใช้ IIFE (Immediately Invoked Function Expression)
+    (async () => {
+      // ป้องกันการโหลดซ้ำถ้ายังโหลดไม่เสร็จ
+      if (isLoading) return;
+      setIsLoading(true);  // ← เริ่มโหลด
+      try {
+        const getData = await fetchBlogPosts(selectedCategory);
+        setBlogPosts(getData); // ← setState อยู่ใน async callback
+      } catch (error) {
+        console.error("Error fetching posts:", error); // ← ไม่สามารถโหลดข้อมูลได้
+      } finally {
+        setIsLoading(false);  // ← โหลดเสร็จ
+      }
+    })(); // ← IIFE: เรียกฟังก์ชันทันที
+  }, [selectedCategory]);
 
   const handleSearch = (e) => {
     setSearchText(e.target.value);
+  };
+
+  const handleLoadMore = () => {
+    setPage(page + 1);
   };
 
   return (
@@ -79,11 +89,10 @@ function ArticleSection() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`h-12 px-5 py-3 rounded-lg text-body-1 transition-colors ${
-                  selectedCategory === category
-                    ? "bg-brown-300 text-brown-500"
-                    : "text-brown-400 hover:bg-brown-100"
-                }`}
+                className={`h-12 px-5 py-3 rounded-lg text-body-1 transition-colors ${selectedCategory === category
+                  ? "bg-brown-300 text-brown-500"
+                  : "text-brown-400 hover:bg-brown-100"
+                  }`}
               >
                 {category}
               </button>
@@ -128,8 +137,19 @@ function ArticleSection() {
               ))}
           </div>
         </div>
+        {/* View More */}
+        <div className="flex justify-center items-center">
+          <button 
+          className="pt-6 md:pt-12 pb-14 md:pb-22 text-body-1 text-brown-600 underline hover:text-brown-400 transition-colors"
+          onClick={handleLoadMore}
+          disabled={!hasMore || isLoading}
+          >
+            {isLoading ? "Loading..." : "View more"}
+          </button>
+        </div>
       </div>
     </section>
+
   );
 }
 

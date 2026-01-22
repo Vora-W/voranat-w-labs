@@ -9,14 +9,16 @@ const formatDate = (isoDate) => {
     });
 };
 
-export const fetchBlogPosts = async () => {
-    const response = await axios.get('https://blog-post-project-api.vercel.app/posts');
+export const fetchBlogPosts = async (selectedCategory) => {
+    const response = await axios.get(selectedCategory === "Highlight"
+        ? 'https://blog-post-project-api.vercel.app/posts'
+        : `https://blog-post-project-api.vercel.app/posts?category=${selectedCategory}`);
     console.log('response.data:', response.data);
-    
+
     const posts = response.data.posts.map(post => ({
         ...post,
         date: formatDate(post.date)
     }));
-    
+
     return posts;
 };
