@@ -281,3 +281,36 @@ body {
   margin: 2em 0;
   border-radius: 12px;
 }
+
+/* Sonner Toast Styles */
+[data-sonner-toaster] {
+  --normal-bg: var(--color-brand-green);
+  --normal-text: white;
+  --normal-border: var(--color-brand-green);
+}
+
+/* Close button styling */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 16px !important;
+  right: 4px !important;
+  left: auto !important;
+  background: transparent !important;
+  color: white !important;
+  border: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  opacity: 1;
+}
+
+[data-sonner-toast] [data-close-button] svg {
+  width: 100%;
+  height: 100%;
+}

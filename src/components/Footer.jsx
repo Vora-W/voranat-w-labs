@@ -22,7 +22,7 @@ const socialLinks = [
 
 function Footer() {
   return (
-    <footer className="bg-brown-200 border-t border-brown-300 px-4 py-10 md:px-[120px] md:py-[60px] flex flex-col md:flex-row gap-6 md:gap-0 items-center md:justify-between">
+    <footer className="bg-brown-200 border-brown-300 px-4 py-10 md:px-[120px] md:py-[60px] flex flex-col md:flex-row gap-6 md:gap-0 items-center md:justify-between">
       {/* Get in touch + Social Icons */}
       <div className="flex items-center gap-4">
         <span className="text-body-1 text-brown-500">Get in touch</span>
