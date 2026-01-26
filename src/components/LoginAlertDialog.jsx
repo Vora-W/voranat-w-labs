@@ -12,19 +12,19 @@ import {
 
 function LoginAlertDialog({ children, dialogState, setDialogState }) {
   const navigate = useNavigate();
+
   return (
     <AlertDialog open={dialogState} onOpenChange={setDialogState}>
-      <AlertDialogTrigger asChild>
-        {children}
-      </AlertDialogTrigger>
+      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent className="bg-white rounded-md pt-16 pb-6 max-w-[416px] sm:max-w-lg flex flex-col items-center">
         <AlertDialogTitle className="text-3xl font-semibold pb-2 text-center">
           Create an account to continue
         </AlertDialogTitle>
         {/* Create account button */}
         <button
-        onClick={() => navigate("/signup")} 
-        className="rounded-full text-white bg-foreground hover:bg-muted-foreground transition-colors py-4 text-lg w-52">
+          onClick={() => navigate("/signup")}
+          className="rounded-full text-white bg-foreground hover:bg-muted-foreground transition-colors py-4 text-lg w-52"
+        >
           Create account
         </button>
         <AlertDialogDescription className="flex flex-row gap-1 justify-center font-medium text-center pt-2   text-muted-foreground">
@@ -43,6 +43,5 @@ function LoginAlertDialog({ children, dialogState, setDialogState }) {
     </AlertDialog>
   );
 }
-
 
 export default LoginAlertDialog;
