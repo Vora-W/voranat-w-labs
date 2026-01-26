@@ -1,14 +1,17 @@
-function BlogCard({ image, category, title, description, author, date }) {
+function BlogCard({ image, category, title, description, author, date, onClick }) {
   return (
     <div className="w-full max-w-[343px] md:max-w-none flex flex-col gap-4 md:gap-6">
       {/* Image */}
-      <a href="#" className="block w-full rounded-2xl overflow-hidden">
+      <div
+        onClick={onClick}
+        className="block w-full rounded-2xl overflow-hidden cursor-pointer"
+      >
         <img
           className="w-full h-[212px] md:h-[360px] object-cover"
           src={image}
           alt={title}
         />
-      </a>
+      </div>
 
       {/* Content */}
       <div className="w-full flex flex-col gap-4">
@@ -20,11 +23,11 @@ function BlogCard({ image, category, title, description, author, date }) {
         </div>
 
         {/* Title */}
-        <a href="#">
+        <div onClick={onClick} className="cursor-pointer">
           <h2 className="text-headline-4 text-brown-600 line-clamp-2 hover:underline">
             {title}
           </h2>
-        </a>
+        </div>
 
         {/* Description */}
         <p className="text-body-2 text-brown-400 line-clamp-2">{description}</p>
