@@ -8,6 +8,28 @@ import CategoryFilter from "./CategoryFilter";
 
 const categories = ["Highlight", "Cat", "Inspiration", "General"];
 
+const SearchResultsDropdown = ({ searchResults, onSelectResult }) => {
+  return (
+    <div className="absolute left-0 top-full mt-2 w-full rounded-2xl bg-white shadow-lg overflow-hidden z-10 p-1">
+      {searchResults.length === 0 ? (
+        <div className="px-4 py-3 text-body-2 text-brown-400">No results</div>
+      ) : (
+        <ul className="max-h-[320px] overflow-auto">
+          {searchResults.map((post) => (
+            <li
+              key={post.id}
+              className="px-4 py-3 text-body-2 text-brown-600 hover:bg-brown-200 rounded-2xl hover:text-brown-400 cursor-pointer"
+              onClick={() => onSelectResult(post.id)}
+            >
+              {post.title}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 function ArticleSection() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("Highlight");
@@ -89,6 +111,9 @@ function ArticleSection() {
     // ถ้าลบ search ให้กลับมาใช้ pagination ได้ตามปกติ
     if (!value.trim()) {
       setHasMore(true);
+    } else {
+      // เมื่อเริ่ม search ให้ clear ข้อมูลเก่าด้วย
+      setBlogPosts([]);
     }
   };
 
@@ -138,27 +163,12 @@ function ArticleSection() {
           <div className="relative mb-4">
             <SearchInput value={searchText} onChange={handleSearch} />
 
-            {/* Search Results Dropdown */}
+            {/* Mobile: Search Results Dropdown */}
             {isSearchOpen && (
-              <div className="absolute left-0 top-full mt-2 w-full rounded-2xl bg-white shadow-lg overflow-hidden z-10 p-1">
-                {searchResults.length === 0 ? (
-                  <div className="px-4 py-3 text-body-2 text-brown-400">
-                    No results
-                  </div>
-                ) : (
-                  <ul className="max-h-[320px] overflow-auto">
-                    {searchResults.map((post) => (
-                      <li
-                        key={post.id}
-                        className="px-4 py-3 text-body-2 text-brown-600 hover:bg-brown-200 rounded-2xl hover:text-brown-400 cursor-pointer"
-                        onClick={() => handleSelectSearchResult(post.id)}
-                      >
-                        {post.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <SearchResultsDropdown
+                searchResults={searchResults}
+                onSelectResult={handleSelectSearchResult}
+              />
             )}
           </div>
 
@@ -190,27 +200,12 @@ function ArticleSection() {
               className="w-full"
             />
 
-            {/* Search Results Dropdown */}
+            {/* Desktop: Search Results Dropdown */}
             {isSearchOpen && (
-              <div className="absolute left-0 top-full mt-2 w-full rounded-2xl bg-white shadow-lg overflow-hidden z-10 p-1">
-                {searchResults.length === 0 ? (
-                  <div className="px-4 py-3 text-body-2 text-brown-400">
-                    No results
-                  </div>
-                ) : (
-                  <ul className="max-h-[320px] overflow-auto">
-                    {searchResults.map((post) => (
-                      <li
-                        key={post.id}
-                        className="px-4 py-3 text-body-2 text-brown-600 hover:bg-brown-200 rounded-2xl hover:text-brown-400 cursor-pointer"
-                        onClick={() => handleSelectSearchResult(post.id)}
-                      >
-                        {post.title}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <SearchResultsDropdown
+                searchResults={searchResults}
+                onSelectResult={handleSelectSearchResult}
+              />
             )}
           </div>
         </div>
