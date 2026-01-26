@@ -32,7 +32,13 @@ const socialShareLinks = [
 ];
 
 // Shared Comment Section
-function CommentSection({ isLoggedIn, isDialogOpen, setIsDialogOpen, comments, setComments }) {
+function CommentSection({
+  isLoggedIn,
+  isDialogOpen,
+  setIsDialogOpen,
+  comments,
+  setComments,
+}) {
   const [commentText, setCommentText] = useState("");
 
   const handleSubmit = () => {
@@ -40,9 +46,12 @@ function CommentSection({ isLoggedIn, isDialogOpen, setIsDialogOpen, comments, s
       setIsDialogOpen(true);
       return;
     }
-    
+
     if (commentText.trim()) {
-      setComments([...comments, { id: Date.now(), text: commentText, author: "You" }]);
+      setComments([
+        ...comments,
+        { id: Date.now(), text: commentText, author: "You" },
+      ]);
       setCommentText("");
       toast("Comment added!", {
         description: "Your comment has been posted successfully.",
@@ -68,7 +77,10 @@ function CommentSection({ isLoggedIn, isDialogOpen, setIsDialogOpen, comments, s
       {isLoggedIn ? (
         submitButton
       ) : (
-        <LoginAlertDialog dialogState={isDialogOpen} setDialogState={setIsDialogOpen}>
+        <LoginAlertDialog
+          dialogState={isDialogOpen}
+          setDialogState={setIsDialogOpen}
+        >
           {submitButton}
         </LoginAlertDialog>
       )}
@@ -77,13 +89,20 @@ function CommentSection({ isLoggedIn, isDialogOpen, setIsDialogOpen, comments, s
 }
 
 // Shared Like + Copy Link + Social buttons
-function LikeAndShareButtons({ likes, setLikes, isLoggedIn, isDialogOpen, setIsDialogOpen, fullWidth = false }) {
+function LikeAndShareButtons({
+  likes,
+  setLikes,
+  isLoggedIn,
+  isDialogOpen,
+  setIsDialogOpen,
+  fullWidth = false,
+}) {
   const handleLike = () => {
     if (!isLoggedIn) {
       setIsDialogOpen(true);
       return;
     }
-    
+
     setLikes(likes + 1);
   };
 
@@ -99,7 +118,10 @@ function LikeAndShareButtons({ likes, setLikes, isLoggedIn, isDialogOpen, setIsD
       {isLoggedIn ? (
         likeButton
       ) : (
-        <LoginAlertDialog dialogState={isDialogOpen} setDialogState={setIsDialogOpen}>
+        <LoginAlertDialog
+          dialogState={isDialogOpen}
+          setDialogState={setIsDialogOpen}
+        >
           {likeButton}
         </LoginAlertDialog>
       )}
@@ -120,8 +142,7 @@ function LikeAndShareButtons({ likes, setLikes, isLoggedIn, isDialogOpen, setIsD
           <button
             key={social.network}
             onClick={() =>
-              window.open(social.getShareUrl(window.location.href), 
-              "_blank")
+              window.open(social.getShareUrl(window.location.href), "_blank")
             }
             className="flex items-center justify-center hover:opacity-60 transition-opacity cursor-pointer"
             aria-label={`Share on ${social.network}`}
@@ -145,26 +166,45 @@ function PostContent() {
   const [comments, setComments] = useState([]);
   const [likes, setLikes] = useState(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Use isDialogOpen instead of the global isLoggedIn constant
   const userIsLoggedIn = !isDialogOpen && isLoggedIn;
 
   useEffect(() => {
+    let isActive = true;
+    const requestedPostId = postId;
+
     const getBlogPostById = async () => {
       try {
         setIsLoading(true);
-        const result = await fetchBlogPosts({ postId });
+        const result = await fetchBlogPosts({ postId: requestedPostId });
+
+        // Prevent stale/out-of-order responses from overwriting current state
+        if (!isActive || requestedPostId !== postId) {
+          return;
+        }
+
         setBlogPost(result);
         // Initialize likes from blog post data
         setLikes(result.likes || 0);
       } catch (error) {
+        if (!isActive) {
+          return;
+        }
         console.error("Error fetching blog post:", error);
       } finally {
-        setIsLoading(false);
+        // Only set loading to false if the effect is still active and matches the latest postId
+        if (isActive && requestedPostId === postId) {
+          setIsLoading(false);
+        }
       }
     };
 
     getBlogPostById();
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isActive = false;
+    };
   }, [postId]);
 
   return (
@@ -180,12 +220,15 @@ function PostContent() {
       ) : (
         <section className="bg-brown-100 md:pt-15">
           <div className="max-w-[1200px] mx-auto">
-            {/* รูปภาพเต็มความกว้าง */}
-            <img
-              src={blogPost.image}
-              alt={blogPost.title}
-              className="w-full h-[300px] md:h-[587px] object-cover md:rounded-[16px]"
-            />
+            {/* Full width image */}
+            {/* Defensive render: avoid rendering <img> with undefined src on first paint or when a post has no image */}
+            {blogPost.image && (
+              <img
+                src={blogPost.image}
+                alt={blogPost.title}
+                className="w-full h-[300px] md:h-[587px] object-cover md:rounded-[16px]"
+              />
+            )}
 
             {/* Content + Author Layout */}
             <div className="flex flex-col md:flex-row md:justify-between md:gap-8 pt-6 md:pt-10 pb-10 px-5 md:px-0">
@@ -213,7 +256,9 @@ function PostContent() {
 
                 {/* Markdown Content */}
                 <div className="markdown prose max-w-none">
-                  <ReactMarkdown>{blogPost.content}</ReactMarkdown>
+                  {blogPost.content && (
+                    <ReactMarkdown>{blogPost.content}</ReactMarkdown>
+                  )}
                 </div>
 
                 {/* Author Section - Mobile Only */}
@@ -224,8 +269,8 @@ function PostContent() {
 
                 {/* Interaction Section - Desktop Only */}
                 <div className="hidden md:flex flex-row gap-4 items-center justify-between bg-brown-200 py-4 px-6 mt-10 rounded-[16px]">
-                  <LikeAndShareButtons 
-                    likes={likes || blogPost.likes || 0} 
+                  <LikeAndShareButtons
+                    likes={likes}
                     setLikes={setLikes}
                     isLoggedIn={userIsLoggedIn}
                     isDialogOpen={isDialogOpen}
@@ -235,7 +280,7 @@ function PostContent() {
 
                 {/* Comment Section - Desktop Only */}
                 <div className="hidden md:flex flex-col gap-2 mt-10 [&>button]:self-end">
-                  <CommentSection 
+                  <CommentSection
                     isLoggedIn={userIsLoggedIn}
                     isDialogOpen={isDialogOpen}
                     setIsDialogOpen={setIsDialogOpen}
@@ -254,19 +299,19 @@ function PostContent() {
 
           {/* Interaction Section - Mobile Only */}
           <div className="md:hidden flex flex-col gap-4 items-center bg-brown-200 px-4 py-10">
-            <LikeAndShareButtons 
-              likes={likes || blogPost.likes || 0} 
+            <LikeAndShareButtons
+              likes={likes}
               setLikes={setLikes}
               isLoggedIn={userIsLoggedIn}
               isDialogOpen={isDialogOpen}
               setIsDialogOpen={setIsDialogOpen}
-              fullWidth={true} 
+              fullWidth={true}
             />
           </div>
 
           {/* Comment Section - Mobile Only */}
           <div className="md:hidden flex flex-col gap-2 px-4 py-10 bg-brown-100">
-            <CommentSection 
+            <CommentSection
               isLoggedIn={userIsLoggedIn}
               isDialogOpen={isDialogOpen}
               setIsDialogOpen={setIsDialogOpen}
