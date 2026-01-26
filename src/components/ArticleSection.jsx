@@ -23,20 +23,36 @@ function ArticleSection() {
     navigate(`/post/view/${postId}`);
   };
 
-  // โหลดโพสต์เมื่อ page หรือ category เปลี่ยน
+  const normalizeText = (value) => (value ?? "").toString().toLowerCase();
+
+  // โหลดโพสต์เมื่อ page / category / searchText เปลี่ยน
   useEffect(() => {
     const getBlogPosts = async () => {
       if (isLoading) return; // ป้องกันการโหลดซ้ำถ้ายังโหลดไม่เสร็จ
 
       setIsLoading(true);
       try {
-        const postsData = await fetchBlogPosts({ category: selectedCategory, page, limit: 6 });
+        const isSearching = searchText.trim().length > 0;
+        const limit = isSearching ? 50 : 6;
+        const currentPage = isSearching ? 1 : page;
+
+        const postsData = await fetchBlogPosts({
+          category: selectedCategory,
+          page: currentPage,
+          limit,
+        });
 
         // ถ้า page 1 ให้ replace, ถ้าไม่ใช่ให้ append (load more)
-        if (page === 1) {
+        if (currentPage === 1) {
           setBlogPosts(postsData.posts);
         } else {
           setBlogPosts((prevPosts) => [...prevPosts, ...postsData.posts]);
+        }
+
+        // ตอนกำลัง search ให้ซ่อนปุ่ม Load More (เราโหลดเป็น batch ใหญ่ครั้งเดียว)
+        if (isSearching) {
+          setHasMore(false);
+          return;
         }
 
         // ตรวจสอบว่าถึงหน้าสุดท้ายหรือยัง
@@ -51,26 +67,60 @@ function ArticleSection() {
     };
 
     getBlogPosts();
-    // ข้าม ESLint warning เพราะถ้าใส่ isLoading ใน dependency array จะเกิด infinite loop
-    // (isLoading เปลี่ยน → useEffect รัน → setIsLoading(true) → isLoading เปลี่ยน → loop ไม่สิ้นสุด)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, selectedCategory]);
+  }, [page, selectedCategory, searchText]);
 
   // Handler สำหรับเปลี่ยน category (reset ก่อนแล้วค่อยเปลี่ยน)
   const handleCategoryChange = (category) => {
     if (category === selectedCategory) return; // ไม่ทำอะไรถ้าเลือก category เดิม
     setPage(1);
     setHasMore(true);
+    setSearchText("");
     setSelectedCategory(category);
   };
 
   const handleSearch = (e) => {
-    setSearchText(e.target.value);
+    const value = e.target.value;
+    setSearchText(value);
+
+    // เวลา search เปลี่ยน ให้กลับไปหน้าแรก
+    setPage(1);
+
+    // ถ้าลบ search ให้กลับมาใช้ pagination ได้ตามปกติ
+    if (!value.trim()) {
+      setHasMore(true);
+    }
   };
 
   // ฟังก์ชันเพิ่มหน้า
   const handleLoadMore = () => {
     setPage((prevPage) => prevPage + 1);
+  };
+
+  // search ได้จาก title, description และ content
+  const isSearchOpen = searchText.trim().length > 0;
+  const keyword = normalizeText(searchText);
+
+  const filteredBlogPosts = blogPosts.filter((post) => {
+    if (!keyword) return true;
+
+    const title = normalizeText(post.title);
+    const description = normalizeText(post.description);
+    const content = normalizeText(post.content);
+
+    return (
+      title.includes(keyword) ||
+      description.includes(keyword) ||
+      content.includes(keyword)
+    );
+  });
+
+  // dropdown แสดงแค่ 8 รายการแรกเพื่อไม่ให้ยาวเกินไป
+  const searchResults = filteredBlogPosts.slice(0, 8);
+
+  const handleSelectSearchResult = (postId) => {
+    setSearchText("");
+    handleNavigate(postId);
   };
 
   return (
@@ -85,7 +135,32 @@ function ArticleSection() {
         {/* Mobile: Search & Filter - bg-brown-200 */}
         <div className="bg-brown-200 px-4 py-4 md:hidden">
           {/* Search Input */}
-          <SearchInput value={searchText} onChange={handleSearch} className="mb-4" />
+          <div className="relative mb-4">
+            <SearchInput value={searchText} onChange={handleSearch} />
+
+            {/* Search Results Dropdown */}
+            {isSearchOpen && (
+              <div className="absolute left-0 top-full mt-2 w-full rounded-2xl bg-white shadow-lg overflow-hidden z-10 p-1">
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-body-2 text-brown-400">
+                    No results
+                  </div>
+                ) : (
+                  <ul className="max-h-[320px] overflow-auto">
+                    {searchResults.map((post) => (
+                      <li
+                        key={post.id}
+                        className="px-4 py-3 text-body-2 text-brown-600 hover:bg-brown-200 rounded-2xl hover:text-brown-400 cursor-pointer"
+                        onClick={() => handleSelectSearchResult(post.id)}
+                      >
+                        {post.title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Category Label */}
           <p className="text-body-1 text-brown-400 mb-2">Category</p>
@@ -108,32 +183,53 @@ function ArticleSection() {
           />
 
           {/* Search Input */}
-          <SearchInput value={searchText} onChange={handleSearch} className="w-[360px]" />
+          <div className="relative w-[360px]">
+            <SearchInput
+              value={searchText}
+              onChange={handleSearch}
+              className="w-full"
+            />
+
+            {/* Search Results Dropdown */}
+            {isSearchOpen && (
+              <div className="absolute left-0 top-full mt-2 w-full rounded-2xl bg-white shadow-lg overflow-hidden z-10 p-1">
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-body-2 text-brown-400">
+                    No results
+                  </div>
+                ) : (
+                  <ul className="max-h-[320px] overflow-auto">
+                    {searchResults.map((post) => (
+                      <li
+                        key={post.id}
+                        className="px-4 py-3 text-body-2 text-brown-600 hover:bg-brown-200 rounded-2xl hover:text-brown-400 cursor-pointer"
+                        onClick={() => handleSelectSearchResult(post.id)}
+                      >
+                        {post.title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Blog Cards Grid */}
         <div className="px-4 py-6 md:px-0 md:py-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-5 md:w-[1200px] md:mx-auto justify-items-center md:justify-items-stretch">
-            {blogPosts
-              .filter((post) => {
-                // Filter เฉพาะ search (category filter ทำฝั่ง API แล้ว)
-                const matchSearch =
-                  post.title.toLowerCase().includes(searchText.toLowerCase()) ||
-                  post.description.toLowerCase().includes(searchText.toLowerCase());
-                return matchSearch;
-              })
-              .map((post) => (
-                <BlogCard
-                  key={post.id}
-                  image={post.image}
-                  category={post.category}
-                  title={post.title}
-                  description={post.description}
-                  author={post.author}
-                  date={post.date}
-                  onClick={() => handleNavigate(post.id)}
-                />
-              ))}
+            {filteredBlogPosts.map((post) => (
+              <BlogCard
+                key={post.id}
+                image={post.image}
+                category={post.category}
+                title={post.title}
+                description={post.description}
+                author={post.author}
+                date={post.date}
+                onClick={() => handleNavigate(post.id)}
+              />
+            ))}
           </div>
         </div>
 
@@ -145,7 +241,6 @@ function ArticleSection() {
         )}
       </div>
     </section>
-
   );
 }
 
