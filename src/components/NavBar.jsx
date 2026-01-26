@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import CustomButton from "./ui/CustomButton";
 
 function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="relative">
@@ -29,15 +31,24 @@ function NavBar() {
         {/* Desktop Nav Buttons */}
         <div className="hidden md:flex items-center gap-4">
           <CustomButton>Log in</CustomButton>
-          <CustomButton variant="dark">Sign up</CustomButton>
+          <CustomButton
+            variant="dark"
+            onClick={() => navigate("/auth/signup")}>
+            Sign up
+          </CustomButton>
         </div>
       </nav>
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="absolute top-12 left-0 w-full bg-brown-100 px-6 py-10 flex flex-col gap-6 md:hidden">
+        <div className="absolute top-12 left-0 w-full bg-brown-100 px-6 py-10 flex flex-col gap-6 shadow-lg md:hidden">
           <CustomButton fullWidth>Log in</CustomButton>
-          <CustomButton variant="dark" fullWidth>Sign up</CustomButton>
+          <CustomButton
+            variant="dark"
+            fullWidth
+            onClick={() => navigate("/auth/signup")}>
+            Sign up
+          </CustomButton>
         </div>
       )}
     </div>
