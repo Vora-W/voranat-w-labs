@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage";
 import ViewPostPage from "./pages/ViewPostPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import SignUpPage from "./pages/SignUpPage";
+import LoginPage from "./pages/LoginPage";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/post/view/:postId" element={<ViewPostPage />} />
         <Route path="/auth/signup" element={<SignUpPage />} />
+        <Route path="/auth/login" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <Toaster position="bottom-right" />

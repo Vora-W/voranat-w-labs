@@ -1,7 +1,12 @@
 import { useState } from "react";
-import { validateForm, validateEmailExists } from "../utils/validation";
+import { validateForm } from "../utils/validation";
+//validateEmailExists
 
-export function useForm(isSignUp = true) {
+export function useForm(
+  isSignUp = true,
+  isLogin = true,
+  { onValidationError } = {},
+) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -25,23 +30,15 @@ export function useForm(isSignUp = true) {
       email,
       password,
       isSignUp,
+      isLogin,
     });
-
-    // Check if email already exists (for sign up)
-    if (isSignUp && !newErrors.email && email) {
-      const { hasError: emailExistsError, error: emailError } =
-        validateEmailExists(email);
-      if (emailExistsError) {
-        newErrors.email = emailError;
-        setErrors(newErrors);
-        setHasError(true);
-        return;
-      }
-    }
 
     setErrors(newErrors);
     setHasError(validationHasError);
 
+    if (validationHasError && onValidationError) {
+      onValidationError(newErrors);
+    }
     if (!validationHasError) {
       setIsSubmitted(true);
     }

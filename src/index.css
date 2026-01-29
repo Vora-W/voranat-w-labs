@@ -289,6 +289,14 @@ body {
   --normal-border: var(--color-brand-green);
 }
 
+@media (max-width: 640px) {
+  [data-sonner-toaster] {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+}
+
 /* Close button styling */
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
