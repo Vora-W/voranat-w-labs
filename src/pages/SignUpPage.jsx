@@ -17,6 +17,7 @@ function SignUpPage() {
     setEmail,
     setPassword,
     handleSubmit,
+    clearFieldError,
   } = useForm(true);
 
   return (
@@ -48,10 +49,22 @@ function SignUpPage() {
                     type="text"
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      clearFieldError("name");
+                    }}
                     placeholder="Full name"
-                    className="w-full h-12 p-3 md:p-4 rounded-lg border border-brown-300 bg-white text-brown-800 placeholder-brown-400 focus:outline-none focus:border-brown-500"
+                    className={`w-full h-12 p-3 md:p-4 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
+                      errors.name
+                        ? "border-brand-red focus:border-brand-red"
+                        : "border-brown-300 focus:border-brown-500 text-brown-600"
+                    }`}
                   />
+                  {errors.name && (
+                    <span className="text-brand-red text-body-2">
+                      {errors.name}
+                    </span>
+                  )}
                 </div>
 
                 {/* Username Field */}
@@ -66,10 +79,22 @@ function SignUpPage() {
                     type="text"
                     id="username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      clearFieldError("username");
+                    }}
                     placeholder="Username"
-                    className="w-full h-12 p-3 md:p-4 rounded-lg border border-brown-300 bg-white text-brown-800 placeholder-brown-400 focus:outline-none focus:border-brown-500"
+                    className={`w-full h-12 p-3 md:p-4 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
+                      errors.username
+                        ? "border-brand-red focus:border-brand-red"
+                        : "border-brown-300 focus:border-brown-500 text-brown-600"
+                    }`}
                   />
+                  {errors.username && (
+                    <span className="text-brand-red text-body-2">
+                      {errors.username}
+                    </span>
+                  )}
                 </div>
 
                 {/* Email Field */}
@@ -81,7 +106,10 @@ function SignUpPage() {
                     type="email"
                     id="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearFieldError("email");
+                    }}
                     placeholder="Email"
                     className={`w-full h-12 p-3 md:p-4 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
                       errors.email
@@ -108,7 +136,10 @@ function SignUpPage() {
                     type="password"
                     id="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearFieldError("password");
+                    }}
                     placeholder="Password"
                     className={`w-full p-3 h-12 md:p-4 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
                       errors.password
