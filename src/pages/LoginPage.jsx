@@ -3,10 +3,12 @@ import CustomButton from "../components/ui/CustomButton";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "../hooks/useForm";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     email,
@@ -27,11 +29,11 @@ function LoginPage() {
     },
   });
 
-useEffect(() => {
-  if (isSubmitted) {
-    navigate("/");
-  }
-}, [isSubmitted, navigate]);
+  useEffect(() => {
+    if (isSubmitted) {
+      navigate("/");
+    }
+  }, [isSubmitted, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -82,21 +84,38 @@ useEffect(() => {
                 >
                   Password
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    clearFieldError("password");
-                  }}
-                  placeholder="Password"
-                  className={`w-full p-3 h-12 md:p-4 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
-                    errors.password || errors.email
-                      ? "border-brand-red focus:border-brand-red text-brand-red"
-                      : "border-brown-300 focus:border-brown-500 text-brown-600"
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearFieldError("password");
+                    }}
+                    placeholder="Password"
+                    className={`w-full p-3 pr-12 h-12 md:p-4 md:pr-14 rounded-lg border bg-white placeholder-brown-400 focus:outline-none ${
+                      errors.password || errors.email
+                        ? "border-brand-red focus:border-brand-red text-brand-red"
+                        : "border-brown-300 focus:border-brown-500 text-brown-600"
+                    }`}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brown-400 hover:text-brown-600"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-6 h-6 text-brown-400 hover:text-brown-600" />
+                    ) : (
+                      <Eye className="w-6 h-6 text-brown-400 hover:text-brown-600 " />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Log In Button */}
