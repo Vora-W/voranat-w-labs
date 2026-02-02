@@ -5,10 +5,13 @@ import { useForm } from "../hooks/useForm";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { MOCK_USER } from "../mockupData/mockUser";
 
 function LoginPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const { setUser } = useAuth();
 
   const {
     email,
@@ -31,9 +34,10 @@ function LoginPage() {
 
   useEffect(() => {
     if (isSubmitted) {
+      setUser(MOCK_USER);
       navigate("/");
     }
-  }, [isSubmitted, navigate]);
+  }, [isSubmitted, setUser, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">

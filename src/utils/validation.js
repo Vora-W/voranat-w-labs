@@ -1,3 +1,8 @@
+import {
+  MOCK_EXISTING_EMAILS,
+  MOCK_CORRECT_PASSWORDS,
+} from "../mockupData/mockAuthCredentials";
+
 export function validateForm({
   name,
   username,
@@ -59,13 +64,9 @@ export function validateForm({
 
 // Function to check if email is already taken (simulate API call)
 function checkEmailExists(email) {
-  // Simulate existing emails for demo
-  const existingEmails = ["moodeng.cute@gmail.com", "test@example.com"];
-  return existingEmails.includes(email.toLowerCase());
+  return MOCK_EXISTING_EMAILS.includes(email.toLowerCase());
 }
 
 function checkCorrectPassword(password) {
-  // Simulate existing emails for demo
-  const correctPassword = ["123456", "123456789", "password", "222222"];
-  return correctPassword.includes(password);
+  return MOCK_CORRECT_PASSWORDS.includes(password);
 }
