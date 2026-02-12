@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ImagePlus, ChevronDown } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
 import CustomButton from "../components/ui/CustomButton";
@@ -8,8 +8,9 @@ import { toast } from "sonner";
 
 const MAX_INTRODUCTION_LETTERS = 120;
 
-export default function AdminArticleCreatePage() {
+export default function AdminArticleEditPage() {
   const navigate = useNavigate();
+  const { postId } = useParams();
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
   const [category, setCategory] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -19,6 +20,8 @@ export default function AdminArticleCreatePage() {
 
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingPost, setLoadingPost] = useState(true);
+  const [postNotFound, setPostNotFound] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -35,6 +38,35 @@ export default function AdminArticleCreatePage() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (!postId) {
+      setLoadingPost(false);
+      setPostNotFound(true);
+      return;
+    }
+    let isActive = true;
+    const loadPost = async () => {
+      setLoadingPost(true);
+      setPostNotFound(false);
+      try {
+        const post = await fetchBlogPosts({ postId });
+        if (!isActive) return;
+        setCategory(post.category || "");
+        setAuthorName(post.author || "");
+        setTitle(post.title || "");
+        setIntroduction(post.description || "");
+        setContent(post.content || "");
+        if (post.image) setThumbnailPreview(post.image);
+      } catch {
+        if (isActive) setPostNotFound(true);
+      } finally {
+        if (isActive) setLoadingPost(false);
+      }
+    };
+    loadPost();
+    return () => { isActive = false; };
+  }, [postId]);
+
   const introLength = introduction.length;
   const introOver = introLength > MAX_INTRODUCTION_LETTERS;
 
@@ -47,7 +79,7 @@ export default function AdminArticleCreatePage() {
 
   const handleSaveDraft = (e) => {
     e.preventDefault();
-    toast.success("Create article and saved as draft", {
+    toast.success("Article saved as draft", {
       description: "You can publish article later",
     });
     navigate("/admin/articles");
@@ -55,8 +87,8 @@ export default function AdminArticleCreatePage() {
 
   const handleSavePublish = (e) => {
     e.preventDefault();
-    toast.success("Create article and published", {
-      description: "Your article has been successfully published",
+    toast.success("Article updated and published", {
+      description: "Your article has been successfully updated",
     });
     navigate("/admin/articles");
   };
@@ -82,8 +114,31 @@ export default function AdminArticleCreatePage() {
     </div>
   );
 
+  if (loadingPost) {
+    return (
+      <AdminLayout title="Edit article">
+        <div className="py-10 text-center text-sm text-brown-400">
+          Loading…
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (postNotFound) {
+    return (
+      <AdminLayout title="Edit article">
+        <div className="flex flex-col items-center gap-4 py-10">
+          <p className="text-center text-sm text-brown-400">Article not found.</p>
+          <CustomButton variant="light" className="h-10 px-6 py-2" onClick={() => navigate("/admin/articles")}>
+            Back to articles
+          </CustomButton>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
-    <AdminLayout title="Create article" rightContent={rightContent}>
+    <AdminLayout title="Edit article" rightContent={rightContent}>
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         {/* Thumbnail image */}
         <div className="space-y-2">

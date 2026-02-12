@@ -8,3 +8,10 @@ export const MOCK_USER = {
   email: "moodeng.cute@gmail.com",
   avatarUrl: null,
 };
+
+export const MOCK_ADMIN_USER = {
+  name: "Admin",
+  username: "admin",
+  email: "admin@mockup.com",
+  avatarUrl: null,
+};

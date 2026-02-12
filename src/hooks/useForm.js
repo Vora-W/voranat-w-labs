@@ -5,7 +5,7 @@ import { validateForm } from "../utils/validation";
 export function useForm(
   isSignUp = true,
   isLogin = true,
-  { onValidationError } = {},
+  { onValidationError, onValidationSuccess } = {},
 ) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -40,7 +40,11 @@ export function useForm(
       onValidationError(newErrors);
     }
     if (!validationHasError) {
-      setIsSubmitted(true);
+      const allowSubmit =
+        typeof onValidationSuccess === "function"
+          ? onValidationSuccess(email, password)
+          : true;
+      if (allowSubmit) setIsSubmitted(true);
     }
   };
 

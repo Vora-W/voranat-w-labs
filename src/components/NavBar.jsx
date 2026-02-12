@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell, User, RefreshCw, LogOut, ChevronDown } from "lucide-react";
+import { Bell, User, RefreshCw, LogOut, ChevronDown, SquareArrowOutUpRight } from "lucide-react";
 import CustomButton from "./ui/CustomButton";
 import { useAuth } from "../contexts/AuthContext";
 import { MOCK_USER } from "../mockupData/mockUser";
+import { MOCK_ADMIN_EMAILS } from "../mockupData/mockAuthCredentials";
 
 function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -22,6 +23,8 @@ function NavBar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const isAdmin = user && MOCK_ADMIN_EMAILS.includes((user.email || "").toLowerCase());
 
   const handleLogout = () => {
     setUser(null);
@@ -107,7 +110,7 @@ function NavBar() {
                   type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    navigate("/member/profile");
+                    navigate(isAdmin ? "/admin/profile" : "/member/profile");
                   }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
                 >
@@ -118,13 +121,27 @@ function NavBar() {
                   type="button"
                   onClick={() => {
                     setIsDropdownOpen(false);
-                    navigate("/auth/reset-password");
+                    navigate(isAdmin ? "/admin/auth/reset-password" : "/auth/reset-password");
                   }}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
                 >
                   <RefreshCw className="w-4 h-4 shrink-0" />
                   Reset password
                 </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      navigate("/admin/articles");
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
+                  >
+                    <SquareArrowOutUpRight className="w-4 h-4 shrink-0" />
+                    Admin panel
+                  </button>
+                )}
+                <div className="my-1 border-t border-brown-200" />
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -183,7 +200,7 @@ function NavBar() {
                   type="button"
                   onClick={() => {
                     setIsMenuOpen(false);
-                    navigate("/member/profile");
+                    navigate(isAdmin ? "/admin/profile" : "/member/profile");
                   }}
                   className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
                 >
@@ -194,13 +211,27 @@ function NavBar() {
                   type="button"
                   onClick={() => {
                     setIsMenuOpen(false);
-                    navigate("/auth/reset-password");
+                    navigate(isAdmin ? "/admin/reset-password" : "/auth/reset-password");
                   }}
                   className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
                 >
                   <RefreshCw className="w-5 h-5 shrink-0" />
                   Reset password
                 </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      navigate("/admin/articles");
+                    }}
+                    className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
+                  >
+                    <SquareArrowOutUpRight className="w-5 h-5 shrink-0" />
+                    Admin panel
+                  </button>
+                )}
+                <div className="my-1 border-t border-brown-200" />
                 <button
                   type="button"
                   onClick={handleLogout}

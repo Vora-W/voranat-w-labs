@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
 import CustomButton from "../components/ui/CustomButton";
+import DeleteCategoryDialog from "../components/DeleteCategoryDialog";
 import { fetchBlogPosts } from "../api/blogPost";
 import { toast } from "sonner";
 
 export default function AdminCategoriesPage() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -44,34 +46,44 @@ export default function AdminCategoriesPage() {
   }, [categories, search]);
 
   const createCategoryButton = (
-    <CustomButton
-      variant="dark"
-      className="h-10 px-6 py-2"
-      onClick={() => toast("Create category will be added after backend supports it.")}
-    >
-      <Plus className="size-4" />
-      Create category
-    </CustomButton>
+    <Link to="/admin/categories/create">
+      <CustomButton variant="dark" className="h-10 px-6 py-2">
+        <Plus className="size-4" />
+        Create category
+      </CustomButton>
+    </Link>
   );
 
   return (
-    <AdminLayout title="Category management" rightContent={createCategoryButton}>
+    <>
+      <DeleteCategoryDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        categoryId={categoryToDelete}
+        onConfirm={(id) => {
+          toast("Delete: coming soon (API not available)", id ? { description: `Category: ${decodeURIComponent(id)}` } : undefined);
+          setCategoryToDelete(null);
+        }}
+      />
+      <AdminLayout title="Category management" rightContent={createCategoryButton}>
       <div className="space-y-5">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-brown-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-lg border border-brown-300 bg-white pl-9 pr-3 text-body-1 text-brown-600 placeholder:text-brown-400 focus:border-brown-500 focus:outline-none focus:ring-1 focus:ring-brown-500"
-          />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex h-12 w-[360px] items-center gap-1">
+            <Search className="absolute left-3 top-1/2 size-4 shrink-0 -translate-y-1/2 text-brown-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-12 w-full rounded-lg border border-brown-200 bg-white pl-9 pr-3 text-body-1 text-brown-400 placeholder:text-brown-400 focus:border-brown-200 focus:outline-none focus:ring-1 focus:ring-brown-400"
+            />
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-brown-200 bg-white">
-          <div className="grid grid-cols-[1fr_100px] gap-4 bg-brown-100 px-4 py-3 text-sm font-medium text-brown-600">
+        <div className="overflow-hidden rounded-xl border border-brown-300 bg-brown-100">
+          <div className="relative z-10 grid grid-cols-[1fr_100px] gap-4 border-b border-brown-300 bg-brown-100 px-4 py-3 text-body-1 text-brown-400 shadow-md">
             <div>Category</div>
-            <div className="text-right">Actions</div>
+            <div className="text-right"></div>
           </div>
 
           {isLoading ? (
@@ -79,33 +91,31 @@ export default function AdminCategoriesPage() {
               Loading…
             </div>
           ) : (
-            <div className="divide-y divide-brown-200">
-              {filteredCategories.map((c) => (
+            <div>
+              {filteredCategories.map((c, i) => (
                 <div
                   key={c.name}
-                  className="grid grid-cols-[1fr_100px] items-center gap-4 px-4 py-3 text-sm transition-colors hover:bg-brown-100/80"
+                  className={`grid grid-cols-[1fr_100px] items-center gap-4 px-4 py-3 text-sm transition-colors hover:opacity-90 ${i % 2 === 0 ? "bg-brown-100" : "bg-brown-200"}`}
                 >
-                  <div className="font-medium text-brown-600">{c.name}</div>
+                  <div className="min-w-0 text-body-1 text-brown-500">{c.name}</div>
                   <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      className="rounded-lg p-2 text-brown-500 hover:bg-brown-200/80"
-                      onClick={() =>
-                        navigate(`/admin/articles?category=${encodeURIComponent(c.name)}&page=1`)
-                      }
+                    <Link
+                      to={`/admin/categories/edit/${encodeURIComponent(c.name)}`}
+                      className="rounded-lg p-2 text-brown-400 hover:bg-brown-300"
                       aria-label="Edit"
                     >
-                      <Pencil className="size-4" />
-                    </button>
+                      <Pencil className="size-5" />
+                    </Link>
                     <button
                       type="button"
-                      className="rounded-lg p-2 text-brown-500 hover:bg-brown-200/80"
-                      onClick={() =>
-                        toast("Delete: coming soon (API not available)")
-                      }
+                      className="rounded-lg p-2 text-brown-400 hover:bg-brown-300"
+                      onClick={() => {
+                        setCategoryToDelete(encodeURIComponent(c.name));
+                        setDeleteDialogOpen(true);
+                      }}
                       aria-label="Delete"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-5" />
                     </button>
                   </div>
                 </div>
@@ -121,5 +131,6 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
     </AdminLayout>
+    </>
   );
 }
