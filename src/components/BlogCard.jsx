@@ -1,4 +1,13 @@
-function BlogCard({ image, category, title, description, author, date, onClick }) {
+function BlogCard({
+  image,
+  category,
+  title,
+  description,
+  author,
+  date,
+  onClick,
+}) {
+  const displayAuthor = author ?? "Admin";
   return (
     <div className="w-full max-w-[343px] md:max-w-none flex flex-col gap-4 md:gap-6">
       {/* Image */}
@@ -37,9 +46,9 @@ function BlogCard({ image, category, title, description, author, date, onClick }
           <img
             className="w-6 h-6 rounded-full"
             src="https://res.cloudinary.com/dcbpjtd1r/image/upload/v1728449784/my-blog-post/xgfy0xnvyemkklcqodkg.jpg"
-            alt={author}
+            alt={displayAuthor}
           />
-          <span className="text-body-2 text-brown-500">{author}</span>
+          <span className="text-body-2 text-brown-500">{displayAuthor}</span>
           <span className="text-brown-300">|</span>
           <span className="text-body-2 text-brown-400">{date}</span>
         </div>

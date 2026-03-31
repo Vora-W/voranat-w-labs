@@ -170,6 +170,8 @@ function PostContent() {
   // Use isDialogOpen instead of the global isLoggedIn constant
   const userIsLoggedIn = !isDialogOpen && isLoggedIn;
 
+  const CATEGORY_MAP = { 1: "Cat", 2: "Inspiration", 3: "General" };
+
   useEffect(() => {
     let isActive = true;
     const requestedPostId = postId;
@@ -237,7 +239,7 @@ function PostContent() {
                 {/* Category + Date */}
                 <div className="flex items-center gap-4 mb-4">
                   <span className="bg-brand-green-soft text-brand-green px-3 py-1 rounded-full text-sm">
-                    {blogPost.category}
+                    {CATEGORY_MAP[blogPost.category_id] ?? blogPost.category_id}
                   </span>
                   <span className="text-brown-400 text-body-1">
                     {blogPost.date}
@@ -263,7 +265,7 @@ function PostContent() {
 
                 {/* Author Section - Mobile Only */}
                 <AuthorCard
-                  author={blogPost.author}
+                  author={blogPost.author ?? "Admin"}
                   className="md:hidden w-[343px] mt-8 mx-auto"
                 />
 
@@ -292,7 +294,10 @@ function PostContent() {
 
               {/* Author Section - Desktop Only (Sticky) */}
               <div className="hidden md:block md:w-[305px]">
-                <AuthorCard author={blogPost.author} className="sticky top-4" />
+                <AuthorCard
+                  author={blogPost.author ?? "Admin"}
+                  className="sticky top-4"
+                />
               </div>
             </div>
           </div>
