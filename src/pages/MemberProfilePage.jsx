@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
-import { Button } from "../components/ui/button";
+import CustomButton from "../components/ui/CustomButton";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { MOCK_USER } from "../mockupData/mockUser";
@@ -129,16 +129,15 @@ function MemberProfilePage() {
                       onChange={handleFileChange}
                       className="hidden"
                     />
-                    <Button
+                    <CustomButton
                       type="button"
-                      variant="outline"
+                      variant="light"
                       onClick={handleUploadClick}
-                      className="w-full md:w-auto h-12 px-6 rounded-full text-body-1 text-brown-600 
-                                 bg-white border-brown-400 hover:bg-brown-100 hover:border-brown-300
-                                 border"
+                      className="md:w-auto text-body-2"
+                      fullWidth
                     >
                       Upload profile picture
-                    </Button>
+                    </CustomButton>
                   </div>
 
                   {/* Form fields - Desktop: to the right of profile pic */}
@@ -203,13 +202,14 @@ function MemberProfilePage() {
 
                 {/* Save Button */}
                 <div className="flex justify-center md:pt-2">
-                  <Button
+                  <CustomButton
                     type="submit"
-                    className="w-full md:w-auto h-12 px-10 rounded-full text-body-1 text-white 
-                               bg-brown-600 hover:bg-brown-500"
+                    variant="dark"
+                    fullWidth
+                    className="md:w-auto"
                   >
                     Save
-                  </Button>
+                  </CustomButton>
                 </div>
               </form>
             </div>

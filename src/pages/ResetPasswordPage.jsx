@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/NavBar";
-import { Button } from "../components/ui/button";
+import CustomButton from "../components/ui/CustomButton";
 import { useAuth } from "../contexts/AuthContext";
 import { MOCK_USER } from "../mockupData/mockUser";
 import { User, Lock, Eye, EyeOff, X } from "lucide-react";
@@ -260,13 +260,14 @@ function ResetPasswordPage() {
 
                 {/* Reset password Button */}
                 <div className="flex justify-center md:pt-2">
-                  <Button
+                  <CustomButton
                     type="submit"
-                    className="w-full md:w-auto h-12 px-10 rounded-full text-body-1 text-white 
-                               bg-brown-600 hover:bg-brown-500"
+                    variant="dark"
+                    fullWidth
+                    className="md:w-auto"
                   >
                     Reset password
-                  </Button>
+                  </CustomButton>
                 </div>
               </form>
             </div>
