@@ -20,7 +20,7 @@ export function useForm(
     password: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // First validate form fields
@@ -42,7 +42,7 @@ export function useForm(
     if (!validationHasError) {
       const allowSubmit =
         typeof onValidationSuccess === "function"
-          ? onValidationSuccess(email, password)
+          ? await onValidationSuccess({ name, username, email, password })
           : true;
       if (allowSubmit) setIsSubmitted(true);
     }

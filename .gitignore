@@ -27,3 +27,4 @@ dist-ssr
 .cursor/plans
 
 .env
+.local/mockupData/
