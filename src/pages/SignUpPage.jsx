@@ -1,12 +1,16 @@
 import NavBar from "../components/NavBar";
 import CustomButton from "../components/ui/CustomButton";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "../hooks/useForm";
 import { useState } from "react";
 import { Check, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
+import { signUpWithEmailPassword } from "../api/auth";
 
 function SignUpPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const {
     name,
     username,
@@ -20,7 +24,28 @@ function SignUpPage() {
     setPassword,
     handleSubmit,
     clearFieldError,
-  } = useForm(true);
+  } = useForm(true, true, {
+    onValidationSuccess: async (values) => {
+      setIsLoading(true);
+      try {
+        await signUpWithEmailPassword({
+          name: values.name.trim(),
+          username: values.username.trim(),
+          email: values.email.trim(),
+          password: values.password,
+        });
+        toast.success("Registration successful");
+        return true;
+      } catch (err) {
+        const message =
+          err?.response?.data?.error || err?.message || "Registration failed";
+        toast.error(message);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -174,12 +199,8 @@ function SignUpPage() {
 
                 {/* Sign Up Button */}
                 <div className="flex justify-center md:pt-3">
-                  <CustomButton
-                    variant="dark"
-                    type="submit"
-                    onClick={handleSubmit}
-                  >
-                    Sign up
+                  <CustomButton variant="dark" type="submit" disabled={isLoading}>
+                    {isLoading ? "Signing up..." : "Sign up"}
                   </CustomButton>
                 </div>
               </form>
@@ -197,7 +218,11 @@ function SignUpPage() {
               </h3>
 
               {/* Continue Button */}
-              <CustomButton variant="dark" className="mt-2">
+              <CustomButton
+                variant="dark"
+                className="mt-2"
+                onClick={() => navigate("/auth/login")}
+              >
                 Continue
               </CustomButton>
             </div>

@@ -1,23 +1,41 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AdminLayout from "../components/AdminLayout";
-import CustomButton from "../components/ui/CustomButton";
+import AdminLayout from "../../components/AdminLayout";
+import CustomButton from "../../components/ui/CustomButton";
+import { createAdminCategory } from "../../api/admin";
+import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
 
-export default function AdminCategoryCreatePage() {
+export default function CategoryCreatePage() {
   const navigate = useNavigate();
+  const { accessToken } = useAuth();
   const [name, setName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Please enter a category name.");
       return;
     }
-    toast.success("Category created", {
-      description: "Create category will be fully supported when backend is ready.",
-    });
-    navigate("/admin/categories");
+
+    if (!accessToken) {
+      toast.error("Please sign in again");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await createAdminCategory(accessToken, { name: name.trim() });
+      toast.success("Category created");
+      navigate("/admin/categories");
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error || err?.message || "Failed to create category"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const rightContent = (
@@ -26,8 +44,9 @@ export default function AdminCategoryCreatePage() {
       variant="dark"
       className="h-10 px-6 py-2"
       onClick={handleSave}
+      disabled={isSaving}
     >
-      Save
+      {isSaving ? "Saving..." : "Save"}
     </CustomButton>
   );
 

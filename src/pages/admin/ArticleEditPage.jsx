@@ -1,42 +1,85 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ImagePlus, ChevronDown } from "lucide-react";
-import AdminLayout from "../components/AdminLayout";
-import CustomButton from "../components/ui/CustomButton";
-import { fetchBlogPosts } from "../api/blogPost";
+import { ChevronDown } from "lucide-react";
+import AdminLayout from "../../components/AdminLayout";
+import CustomButton from "../../components/ui/CustomButton";
+import ImageUploadField from "../../components/ImageUploadField";
+import {
+  fetchAdminPost,
+  fetchAdminPostOptions,
+  updateAdminPost,
+} from "../../api/admin";
+import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
 
 const MAX_INTRODUCTION_LETTERS = 120;
 
-export default function AdminArticleEditPage() {
+const normalizeStatusName = (value) => value?.trim().toLowerCase() ?? "";
+
+const findStatusIdByIntent = (statuses, intent) => {
+  if (intent === "draft") {
+    return (
+      statuses.find((status) => normalizeStatusName(status.status) === "draft")?.id ??
+      statuses.find((status) =>
+        normalizeStatusName(status.status).includes("draft")
+      )?.id ??
+      null
+    );
+  }
+
+  const draftId =
+    statuses.find((status) => normalizeStatusName(status.status) === "draft")?.id ??
+    null;
+
+  return (
+    statuses.find(
+      (status) => normalizeStatusName(status.status) === "published"
+    )?.id ??
+    statuses.find((status) => normalizeStatusName(status.status) === "publish")?.id ??
+    statuses.find((status) =>
+      normalizeStatusName(status.status).includes("publish")
+    )?.id ??
+    statuses.find((status) => status.id !== draftId)?.id ??
+    null
+  );
+};
+
+export default function ArticleEditPage() {
   const navigate = useNavigate();
   const { postId } = useParams();
+  const { accessToken, user } = useAuth();
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
-  const [category, setCategory] = useState("");
-  const [authorName, setAuthorName] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [categoryId, setCategoryId] = useState("");
+  const [authorName, setAuthorName] = useState(user?.name || "");
   const [title, setTitle] = useState("");
   const [introduction, setIntroduction] = useState("");
   const [content, setContent] = useState("");
 
   const [categories, setCategories] = useState([]);
+  const [statuses, setStatuses] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingPost, setLoadingPost] = useState(true);
   const [postNotFound, setPostNotFound] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setLoadingCategories(true);
       try {
-        const result = await fetchBlogPosts({ page: 1, limit: 50 });
-        const fromApi = result.posts.map((p) => p.category).filter(Boolean);
-        const list = [...new Set(fromApi)].sort();
-        setCategories(list);
+        const result = await fetchAdminPostOptions(accessToken);
+        setCategories(result.categories || []);
+        setStatuses(result.statuses || []);
+      } catch (err) {
+        toast.error(
+          err?.response?.data?.error || err?.message || "Failed to load article options"
+        );
       } finally {
         setLoadingCategories(false);
       }
     };
-    load();
-  }, []);
+    if (accessToken) load();
+  }, [accessToken]);
 
   useEffect(() => {
     if (!postId) {
@@ -49,14 +92,15 @@ export default function AdminArticleEditPage() {
       setLoadingPost(true);
       setPostNotFound(false);
       try {
-        const post = await fetchBlogPosts({ postId });
+        const post = await fetchAdminPost(postId);
         if (!isActive) return;
-        setCategory(post.category || "");
-        setAuthorName(post.author || "");
+        setCategoryId(post.categoryId ? String(post.categoryId) : "");
+        setAuthorName(user?.name || post.author || "");
         setTitle(post.title || "");
         setIntroduction(post.description || "");
         setContent(post.content || "");
         if (post.image) setThumbnailPreview(post.image);
+        setThumbnailFile(null);
       } catch {
         if (isActive) setPostNotFound(true);
       } finally {
@@ -64,33 +108,107 @@ export default function AdminArticleEditPage() {
       }
     };
     loadPost();
-    return () => { isActive = false; };
-  }, [postId]);
+    return () => {
+      isActive = false;
+    };
+  }, [postId, user]);
+
+  useEffect(() => {
+    if (user?.name) setAuthorName(user.name);
+  }, [user]);
+
+  const draftStatusId = useMemo(
+    () => findStatusIdByIntent(statuses, "draft"),
+    [statuses]
+  );
+
+  const publishedStatusId = useMemo(
+    () => findStatusIdByIntent(statuses, "publish"),
+    [statuses]
+  );
 
   const introLength = introduction.length;
   const introOver = introLength > MAX_INTRODUCTION_LETTERS;
 
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setThumbnailPreview(url);
+  const handleThumbnailChange = ({ file, previewUrl }) => {
+    setThumbnailFile(file);
+    setThumbnailPreview(previewUrl);
   };
 
-  const handleSaveDraft = (e) => {
-    e.preventDefault();
-    toast.success("Article saved as draft", {
-      description: "You can publish article later",
-    });
-    navigate("/admin/articles");
+  const validateForm = (nextStatusId) => {
+    if (!thumbnailPreview) {
+      toast.error("Thumbnail image is required");
+      return false;
+    }
+
+    if (!categoryId) {
+      toast.error("Please select a category");
+      return false;
+    }
+
+    if (!title.trim()) {
+      toast.error("Title is required");
+      return false;
+    }
+
+    if (!introduction.trim()) {
+      toast.error("Introduction is required");
+      return false;
+    }
+
+    if (introOver) {
+      toast.error(`Introduction must not exceed ${MAX_INTRODUCTION_LETTERS} letters`);
+      return false;
+    }
+
+    if (!content.trim()) {
+      toast.error("Content is required");
+      return false;
+    }
+
+    if (!nextStatusId) {
+      toast.error("Please select a status");
+      return false;
+    }
+
+    return true;
   };
 
-  const handleSavePublish = (e) => {
-    e.preventDefault();
-    toast.success("Article updated and published", {
-      description: "Your article has been successfully updated",
-    });
-    navigate("/admin/articles");
+  const handleSave = async (statusId, successMessage, successDescription) => {
+    if (!accessToken) {
+      toast.error("Please sign in again");
+      return;
+    }
+
+    if (!validateForm(statusId)) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateAdminPost(accessToken, postId, {
+        title: title.trim(),
+        image: thumbnailPreview,
+        imageFile: thumbnailFile,
+        category_id: Number(categoryId),
+        description: introduction.trim(),
+        content: content.trim(),
+        status_id: Number(statusId),
+      });
+      toast.success(successMessage, {
+        description: successDescription,
+      });
+      navigate("/admin/articles");
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update article"
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const rightContent = (
@@ -99,7 +217,14 @@ export default function AdminArticleEditPage() {
         type="button"
         variant="light"
         className="h-10 px-6 py-2 text-sm disabled:opacity-50"
-        onClick={handleSaveDraft}
+        onClick={() =>
+          handleSave(
+            draftStatusId,
+            "Article saved as draft",
+            "You can publish article later"
+          )
+        }
+        disabled={isSaving || loadingCategories}
       >
         Save as draft
       </CustomButton>
@@ -107,9 +232,16 @@ export default function AdminArticleEditPage() {
         type="button"
         variant="dark"
         className="h-10 px-6 py-2"
-        onClick={handleSavePublish}
+        onClick={() =>
+          handleSave(
+            publishedStatusId,
+            "Article updated and published",
+            "Your article has been successfully updated"
+          )
+        }
+        disabled={isSaving || loadingCategories}
       >
-        Save and publish
+        {isSaving ? "Saving..." : "Save and publish"}
       </CustomButton>
     </div>
   );
@@ -129,7 +261,11 @@ export default function AdminArticleEditPage() {
       <AdminLayout title="Edit article">
         <div className="flex flex-col items-center gap-4 py-10">
           <p className="text-center text-sm text-brown-400">Article not found.</p>
-          <CustomButton variant="light" className="h-10 px-6 py-2" onClick={() => navigate("/admin/articles")}>
+          <CustomButton
+            variant="light"
+            className="h-10 px-6 py-2"
+            onClick={() => navigate("/admin/articles")}
+          >
             Back to articles
           </CustomButton>
         </div>
@@ -140,45 +276,14 @@ export default function AdminArticleEditPage() {
   return (
     <AdminLayout title="Edit article" rightContent={rightContent}>
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-        {/* Thumbnail image */}
-        <div className="space-y-2">
-          <label className="block text-body-1 text-brown-400">
-            Thumbnail image
-          </label>
-          <div className="flex flex-wrap items-start gap-4">
-            <div
-              className="flex h-40 w-64 shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-brown-200 bg-brown-100/50"
-              style={{
-                backgroundImage: thumbnailPreview
-                  ? `url(${thumbnailPreview})`
-                  : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              {!thumbnailPreview && (
-                <ImagePlus className="size-10 text-brown-400" />
-              )}
-            </div>
-            <CustomButton
-              type="button"
-              variant="light"
-              className="h-10 px-4 py-2 text-body-2"
-              onClick={() => document.getElementById("thumbnail-upload").click()}
-            >
-              Upload thumbnail image
-            </CustomButton>
-            <input
-              id="thumbnail-upload"
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleThumbnailChange}
-            />
-          </div>
-        </div>
+        <ImageUploadField
+          label="Thumbnail image"
+          previewUrl={thumbnailPreview}
+          onImageChange={handleThumbnailChange}
+          buttonLabel="Upload thumbnail image"
+          disabled={isSaving || loadingCategories}
+        />
 
-        {/* Category */}
         <div className="space-y-2">
           <label
             htmlFor="category"
@@ -189,15 +294,15 @@ export default function AdminArticleEditPage() {
           <div className="relative max-w-md">
             <select
               id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
               className="h-12 w-full appearance-none rounded-lg border border-brown-200 bg-white py-3 pl-4 pr-10 text-body-1 text-brown-400 focus:border-brown-400 focus:outline-none disabled:opacity-50"
               disabled={loadingCategories}
             >
               <option value="">Select category</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>
@@ -205,7 +310,6 @@ export default function AdminArticleEditPage() {
           </div>
         </div>
 
-        {/* Author name */}
         <div className="space-y-2">
           <label
             htmlFor="authorName"
@@ -217,18 +321,14 @@ export default function AdminArticleEditPage() {
             id="authorName"
             type="text"
             value={authorName}
-            onChange={(e) => setAuthorName(e.target.value)}
+            readOnly
             className="h-12 w-full max-w-md rounded-lg border border-brown-200 bg-white px-4 text-body-1 text-brown-400 placeholder:text-brown-400 focus:border-brown-400 focus:outline-none focus:ring-1 focus:ring-brown-400"
             placeholder="Author name"
           />
         </div>
 
-        {/* Title */}
         <div className="space-y-2">
-          <label
-            htmlFor="title"
-            className="block text-body-1 text-brown-400"
-          >
+          <label htmlFor="title" className="block text-body-1 text-brown-400">
             Title
           </label>
           <input
@@ -241,7 +341,6 @@ export default function AdminArticleEditPage() {
           />
         </div>
 
-        {/* Introduction (max 120 letters) */}
         <div className="space-y-2">
           <label
             htmlFor="introduction"
@@ -268,12 +367,8 @@ export default function AdminArticleEditPage() {
           </p>
         </div>
 
-        {/* Content */}
         <div className="space-y-2">
-          <label
-            htmlFor="content"
-            className="block text-body-1 text-brown-400"
-          >
+          <label htmlFor="content" className="block text-body-1 text-brown-400">
             Content
           </label>
           <textarea

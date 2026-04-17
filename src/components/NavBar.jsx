@@ -1,37 +1,17 @@
-import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { Bell, User, RefreshCw, LogOut, ChevronDown, SquareArrowOutUpRight } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import CustomButton from "./ui/CustomButton";
 import { useAuth } from "../contexts/AuthContext";
-import { MOCK_USER } from "../mockupData/mockUser";
-import { MOCK_ADMIN_EMAILS } from "../mockupData/mockAuthCredentials";
+import MemberNavBar from "./MemberNavBar";
 
 function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const isAdmin = user && MOCK_ADMIN_EMAILS.includes((user.email || "").toLowerCase());
-
-  const handleLogout = () => {
-    setUser(null);
-    setIsMenuOpen(false);
-    setIsDropdownOpen(false);
-    navigate("/");
-  };
+  if (user) {
+    return <MemberNavBar />;
+  }
 
   return (
     <div className="relative">
@@ -55,194 +35,29 @@ function NavBar() {
           <span className="block w-full h-0.5 bg-brown-400 rounded-full"></span>
         </button>
 
-        {/* Desktop Nav - Logged out */}
-        {!user && (
-          <div className="hidden md:flex items-center gap-4">
-            <CustomButton onClick={() => navigate("/auth/login")}>
-              Log in
-            </CustomButton>
-            <CustomButton variant="dark" onClick={() => navigate("/auth/signup")}>
-              Sign up
-            </CustomButton>
-          </div>
-        )}
-
-        {/* Desktop Nav - Logged in (รูป 1, 2) */}
-        {user && (
-          <div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
-            {/* Notification bell with badge */}
-            <button
-              type="button"
-              className="relative p-1.5 rounded-full hover:bg-brown-200 text-brown-600"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5" strokeWidth={2} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-red" aria-hidden />
-            </button>
-
-            {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-brown-400 flex items-center justify-center overflow-hidden shrink-0">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white text-body-2 font-medium">
-                  {user.name?.charAt(0) || MOCK_USER.name?.charAt(0)}
-                </span>
-              )}
-            </div>
-
-            {/* Name + dropdown trigger */}
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen((o) => !o)}
-              className="flex items-center gap-1 text-body-1 text-brown-600 hover:text-brown-500"
-            >
-              <span>{user.name || MOCK_USER.name}</span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {/* Dropdown menu */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 py-1 bg-white rounded-lg shadow-lg border border-brown-200 z-50">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate(isAdmin ? "/admin/profile" : "/member/profile");
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
-                >
-                  <User className="w-4 h-4 shrink-0" />
-                  Profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    navigate(isAdmin ? "/admin/auth/reset-password" : "/auth/reset-password");
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
-                >
-                  <RefreshCw className="w-4 h-4 shrink-0" />
-                  Reset password
-                </button>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsDropdownOpen(false);
-                      navigate("/admin/articles");
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
-                  >
-                    <SquareArrowOutUpRight className="w-4 h-4 shrink-0" />
-                    Admin panel
-                  </button>
-                )}
-                <div className="my-1 border-t border-brown-200" />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-body-2 text-brown-600 hover:bg-brown-100"
-                >
-                  <LogOut className="w-4 h-4 shrink-0" />
-                  Log out
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="hidden md:flex items-center gap-4">
+          <CustomButton onClick={() => navigate("/auth/login")}>
+            Log in
+          </CustomButton>
+          <CustomButton variant="dark" onClick={() => navigate("/auth/signup")}>
+            Sign up
+          </CustomButton>
+        </div>
       </nav>
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
         <div className="absolute top-12 left-0 w-full bg-brown-100 px-6 py-10 flex flex-col gap-6 shadow-lg md:hidden z-50">
-          {!user ? (
-            <>
-              <CustomButton fullWidth onClick={() => navigate("/auth/login")}>
-                Log in
-              </CustomButton>
-              <CustomButton
-                variant="dark"
-                fullWidth
-                onClick={() => navigate("/auth/signup")}
-              >
-                Sign up
-              </CustomButton>
-            </>
-          ) : (
-            /* รูป 3: โปรไฟล์ + เมนู */
-            <>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brown-400 flex items-center justify-center overflow-hidden shrink-0">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white text-body-1 font-medium">
-                      {user.name?.charAt(0) || MOCK_USER.name?.charAt(0)}
-                    </span>
-                  )}
-                </div>
-                <span className="text-body-1 text-brown-600 flex-1">{user.name || MOCK_USER.name}</span>
-                <button
-                  type="button"
-                  className="relative p-2 rounded-full hover:bg-brown-200 text-brown-600"
-                  aria-label="Notifications"
-                >
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-red" />
-                </button>
-              </div>
-              <div className="flex flex-col gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate(isAdmin ? "/admin/profile" : "/member/profile");
-                  }}
-                  className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
-                >
-                  <User className="w-5 h-5 shrink-0" />
-                  Profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate(isAdmin ? "/admin/reset-password" : "/auth/reset-password");
-                  }}
-                  className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
-                >
-                  <RefreshCw className="w-5 h-5 shrink-0" />
-                  Reset password
-                </button>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      navigate("/admin/articles");
-                    }}
-                    className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
-                  >
-                    <SquareArrowOutUpRight className="w-5 h-5 shrink-0" />
-                    Admin panel
-                  </button>
-                )}
-                <div className="my-1 border-t border-brown-200" />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 py-3 text-body-1 text-brown-600 hover:bg-brown-200 rounded-lg px-2"
-                >
-                  <LogOut className="w-5 h-5 shrink-0" />
-                  Log out
-                </button>
-              </div>
-            </>
-          )}
+          <CustomButton fullWidth onClick={() => navigate("/auth/login")}>
+            Log in
+          </CustomButton>
+          <CustomButton
+            variant="dark"
+            fullWidth
+            onClick={() => navigate("/auth/signup")}
+          >
+            Sign up
+          </CustomButton>
         </div>
       )}
     </div>
