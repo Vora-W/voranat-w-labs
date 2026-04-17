@@ -60,6 +60,8 @@ export default function LoginPage() {
     } catch (err) {
       const message =
         err?.response?.data?.error || err?.message || "Login failed";
+      setUser(null);
+      setToken(null);
       setHasError(true);
       toast.error(message);
     } finally {

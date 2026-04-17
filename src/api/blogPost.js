@@ -88,7 +88,6 @@ export const fetchBlogPosts = async ({
   if (categoryParam) params.categories = categoryParam;
 
   const response = await axios.get(baseUrl, { params });
-  console.log("response.data:", response.data);
 
   const posts = response.data.posts.map(mapPost);
 
