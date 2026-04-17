@@ -1,16 +1,20 @@
 import ReactMarkdown from "react-markdown";
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { fetchBlogPosts } from "../api/blogPost";
+import {
+  fetchBlogPosts,
+  fetchPostLikes,
+  likePost,
+  fetchPostComments,
+  createPostComment,
+} from "../api/blogPost";
 import { LoaderCircle, Ellipsis, Smile, Copy } from "lucide-react";
 import { SocialIcon } from "react-social-icons";
 import { toast } from "sonner";
 import AuthorCard from "../components/AuthorCard";
 import CustomButton from "./ui/CustomButton";
 import LoginAlertDialog from "./LoginAlertDialog";
-
-// Mock authentication state - replace with real auth context later
-const isLoggedIn = false;
+import { useAuth } from "../contexts/AuthContext";
 
 // Social share buttons data with share URLs
 const socialShareLinks = [
@@ -31,37 +35,105 @@ const socialShareLinks = [
   },
 ];
 
+const getCommentInitial = (author) =>
+  (author ?? "A").trim().charAt(0).toUpperCase() || "A";
+
+function CommentItem({ comment, withDivider = true }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const shouldShowProfileImage = Boolean(comment.profilePic) && !imageFailed;
+
+  return (
+    <article
+      className={`${withDivider ? "border-t border-brown-300 pt-8" : ""}`}
+    >
+      <div className="flex items-start gap-4">
+        {shouldShowProfileImage ? (
+          <img
+            src={comment.profilePic}
+            alt={comment.author}
+            className="size-12 rounded-full object-cover shrink-0"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brown-300 text-body-1 text-brown-600">
+            {getCommentInitial(comment.author)}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-headline-4 text-brown-600 wrap-break-word">
+            {comment.author}
+          </h3>
+          <p className="mt-1 text-body-3 text-brown-400">
+            {comment.formattedDate || "-"}
+          </p>
+          <p className="mt-4 whitespace-pre-wrap text-body-1 leading-relaxed text-brown-500">
+            {comment.text}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 // Shared Comment Section
 function CommentSection({
+  postId,
   isLoggedIn,
+  accessToken,
   isDialogOpen,
   setIsDialogOpen,
   comments,
   setComments,
+  isSubmittingComment,
+  setIsSubmittingComment,
+  buttonAlignment = "start",
 }) {
   const [commentText, setCommentText] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isLoggedIn) {
       setIsDialogOpen(true);
       return;
     }
 
-    if (commentText.trim()) {
-      setComments([
-        ...comments,
-        { id: Date.now(), text: commentText, author: "You" },
-      ]);
+    const trimmedComment = commentText.trim();
+    if (!trimmedComment) {
+      toast.error("Please enter a comment before sending.");
+      return;
+    }
+
+    try {
+      setIsSubmittingComment(true);
+      const createdComment = await createPostComment({
+        postId,
+        commentText: trimmedComment,
+        accessToken,
+      });
+
+      setComments((prevComments) => [createdComment, ...prevComments]);
       setCommentText("");
       toast("Comment added!", {
         description: "Your comment has been posted successfully.",
       });
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.error ||
+          error?.message ||
+          "Failed to post your comment"
+      );
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
   const submitButton = (
-    <CustomButton variant="dark" className="mt-1" onClick={handleSubmit}>
-      <span>Send</span>
+    <CustomButton
+      variant="dark"
+      className="mt-1"
+      onClick={handleSubmit}
+      disabled={isSubmittingComment}
+    >
+      <span>{isSubmittingComment ? "Sending..." : "Send"}</span>
     </CustomButton>
   );
 
@@ -74,15 +146,32 @@ function CommentSection({
         onChange={(e) => setCommentText(e.target.value)}
         className="w-full h-[102px] p-4 text-body-1 text-brown-600 bg-white border border-brown-300 rounded-lg resize-y focus:outline-none focus:border-brown-400 transition-colors placeholder:text-brown-400"
       />
-      {isLoggedIn ? (
-        submitButton
-      ) : (
-        <LoginAlertDialog
-          dialogState={isDialogOpen}
-          setDialogState={setIsDialogOpen}
-        >
-          {submitButton}
-        </LoginAlertDialog>
+      <div
+        className={`mt-1 flex ${
+          buttonAlignment === "end" ? "justify-end" : "justify-start"
+        }`}
+      >
+        {isLoggedIn ? (
+          submitButton
+        ) : (
+          <LoginAlertDialog
+            dialogState={isDialogOpen}
+            setDialogState={setIsDialogOpen}
+          >
+            {submitButton}
+          </LoginAlertDialog>
+        )}
+      </div>
+      {comments.length > 0 && (
+        <div className="mt-8 flex flex-col gap-8">
+          {comments.map((comment, index) => (
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              withDivider={index !== 0}
+            />
+          ))}
+        </div>
       )}
     </>
   );
@@ -93,21 +182,49 @@ function LikeAndShareButtons({
   likes,
   setLikes,
   isLoggedIn,
+  accessToken,
+  postId,
+  likedByUser,
+  setLikedByUser,
+  isLiking,
+  setIsLiking,
   isDialogOpen,
   setIsDialogOpen,
   fullWidth = false,
 }) {
-  const handleLike = () => {
+  const handleLike = async () => {
     if (!isLoggedIn) {
       setIsDialogOpen(true);
       return;
     }
 
-    setLikes(likes + 1);
+    if (likedByUser || isLiking) {
+      return;
+    }
+
+    try {
+      setIsLiking(true);
+      const result = await likePost({ postId, accessToken });
+      setLikes(result.likesCount ?? likes);
+      setLikedByUser(Boolean(result.likedByUser));
+      toast("Liked!", {
+        description: "Thanks for liking this article.",
+      });
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.error || error?.message || "Failed to like this article"
+      );
+    } finally {
+      setIsLiking(false);
+    }
   };
 
   const likeButton = (
-    <CustomButton fullWidth={fullWidth} onClick={handleLike}>
+    <CustomButton
+      fullWidth={fullWidth}
+      onClick={handleLike}
+      disabled={isLiking || likedByUser}
+    >
       <Smile className="w-5 h-5" />
       <span>{likes}</span>
     </CustomButton>
@@ -159,18 +276,19 @@ function LikeAndShareButtons({
 }
 
 function PostContent() {
+  const { user, accessToken } = useAuth();
   const [blogPost, setBlogPost] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const { postId } = useParams();
 
   const [comments, setComments] = useState([]);
   const [likes, setLikes] = useState(0);
+  const [likedByUser, setLikedByUser] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Use isDialogOpen instead of the global isLoggedIn constant
-  const userIsLoggedIn = !isDialogOpen && isLoggedIn;
-
-  const CATEGORY_MAP = { 1: "Cat", 2: "Inspiration", 3: "General" };
+  const userIsLoggedIn = Boolean(user && accessToken);
 
   useEffect(() => {
     let isActive = true;
@@ -187,8 +305,6 @@ function PostContent() {
         }
 
         setBlogPost(result);
-        // Initialize likes from blog post data
-        setLikes(result.likes || 0);
       } catch (error) {
         if (!isActive) {
           return;
@@ -208,6 +324,50 @@ function PostContent() {
       isActive = false;
     };
   }, [postId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadLikes = async () => {
+      if (!postId) return;
+      try {
+        const result = await fetchPostLikes({ postId, accessToken });
+        if (!isActive) return;
+        setLikes(result.likesCount ?? 0);
+        setLikedByUser(Boolean(result.likedByUser));
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Error fetching likes:", error);
+      }
+    };
+
+    loadLikes();
+    return () => {
+      isActive = false;
+    };
+  }, [postId, accessToken]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadComments = async () => {
+      if (!postId) return;
+
+      try {
+        const result = await fetchPostComments({ postId, accessToken });
+        if (!isActive) return;
+        setComments(result);
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Error fetching comments:", error);
+      }
+    };
+
+    loadComments();
+    return () => {
+      isActive = false;
+    };
+  }, [postId, accessToken]);
 
   return (
     <>
@@ -239,7 +399,7 @@ function PostContent() {
                 {/* Category + Date */}
                 <div className="flex items-center gap-4 mb-4">
                   <span className="bg-brand-green-soft text-brand-green px-3 py-1 rounded-full text-sm">
-                    {CATEGORY_MAP[blogPost.category_id] ?? blogPost.category_id}
+                    {blogPost.category || "-"}
                   </span>
                   <span className="text-brown-400 text-body-1">
                     {blogPost.date}
@@ -266,6 +426,7 @@ function PostContent() {
                 {/* Author Section - Mobile Only */}
                 <AuthorCard
                   author={blogPost.author ?? "Admin"}
+                  authorProfilePic={blogPost.authorProfilePic}
                   className="md:hidden w-[343px] mt-8 mx-auto"
                 />
 
@@ -275,19 +436,30 @@ function PostContent() {
                     likes={likes}
                     setLikes={setLikes}
                     isLoggedIn={userIsLoggedIn}
+                    accessToken={accessToken}
+                    postId={postId}
+                    likedByUser={likedByUser}
+                    setLikedByUser={setLikedByUser}
+                    isLiking={isLiking}
+                    setIsLiking={setIsLiking}
                     isDialogOpen={isDialogOpen}
                     setIsDialogOpen={setIsDialogOpen}
                   />
                 </div>
 
                 {/* Comment Section - Desktop Only */}
-                <div className="hidden md:flex flex-col gap-2 mt-10 [&>button]:self-end">
+                <div className="hidden md:flex flex-col gap-2 mt-10">
                   <CommentSection
+                    postId={postId}
                     isLoggedIn={userIsLoggedIn}
+                    accessToken={accessToken}
                     isDialogOpen={isDialogOpen}
                     setIsDialogOpen={setIsDialogOpen}
                     comments={comments}
                     setComments={setComments}
+                    isSubmittingComment={isSubmittingComment}
+                    setIsSubmittingComment={setIsSubmittingComment}
+                    buttonAlignment="end"
                   />
                 </div>
               </div>
@@ -296,6 +468,7 @@ function PostContent() {
               <div className="hidden md:block md:w-[305px]">
                 <AuthorCard
                   author={blogPost.author ?? "Admin"}
+                  authorProfilePic={blogPost.authorProfilePic}
                   className="sticky top-4"
                 />
               </div>
@@ -308,6 +481,12 @@ function PostContent() {
               likes={likes}
               setLikes={setLikes}
               isLoggedIn={userIsLoggedIn}
+              accessToken={accessToken}
+              postId={postId}
+              likedByUser={likedByUser}
+              setLikedByUser={setLikedByUser}
+              isLiking={isLiking}
+              setIsLiking={setIsLiking}
               isDialogOpen={isDialogOpen}
               setIsDialogOpen={setIsDialogOpen}
               fullWidth={true}
@@ -317,11 +496,15 @@ function PostContent() {
           {/* Comment Section - Mobile Only */}
           <div className="md:hidden flex flex-col gap-2 px-4 py-10 bg-brown-100">
             <CommentSection
+              postId={postId}
               isLoggedIn={userIsLoggedIn}
+              accessToken={accessToken}
               isDialogOpen={isDialogOpen}
               setIsDialogOpen={setIsDialogOpen}
               comments={comments}
               setComments={setComments}
+              isSubmittingComment={isSubmittingComment}
+              setIsSubmittingComment={setIsSubmittingComment}
             />
           </div>
         </section>

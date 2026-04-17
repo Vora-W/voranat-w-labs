@@ -6,7 +6,12 @@ import SearchInput from "./SearchInput";
 import LoadMoreButton from "./LoadMoreButton";
 import CategoryFilter from "./CategoryFilter";
 
-const categories = ["Highlight", "Cat", "Inspiration", "General"];
+const DEFAULT_CATEGORY = "Highlight";
+const normalizeText = (value) => (value ?? "").toString().toLowerCase();
+const isPublishedPost = (post) => {
+  const status = normalizeText(post.status ?? post.status_name);
+  return status === "publish" || status === "published";
+};
 
 const SearchResultsDropdown = ({ searchResults, onSelectResult }) => {
   return (
@@ -32,7 +37,8 @@ const SearchResultsDropdown = ({ searchResults, onSelectResult }) => {
 
 function ArticleSection() {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState("Highlight");
+  const [categories, setCategories] = useState([DEFAULT_CATEGORY]);
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORY);
   const [blogPosts, setBlogPosts] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
@@ -45,7 +51,28 @@ function ArticleSection() {
     navigate(`/post/view/${postId}`);
   };
 
-  const normalizeText = (value) => (value ?? "").toString().toLowerCase();
+  useEffect(() => {
+    const getCategories = async () => {
+      try {
+        const postsData = await fetchBlogPosts({ page: 1, limit: 100 });
+        const categoryNames = (postsData.posts || [])
+          .filter(isPublishedPost)
+          .map((post) => post.category)
+          .filter((category) => typeof category === "string" && category.trim());
+        const uniqueCategories = [
+          DEFAULT_CATEGORY,
+          ...new Set(
+            categoryNames.filter((category) => category !== DEFAULT_CATEGORY)
+          ),
+        ];
+        setCategories(uniqueCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    getCategories();
+  }, []);
 
   // โหลดโพสต์เมื่อ page / category / searchText เปลี่ยน
   useEffect(() => {
@@ -63,12 +90,13 @@ function ArticleSection() {
           page: currentPage,
           limit,
         });
+        const publishedPosts = (postsData.posts || []).filter(isPublishedPost);
 
         // ถ้า page 1 ให้ replace, ถ้าไม่ใช่ให้ append (load more)
         if (currentPage === 1) {
-          setBlogPosts(postsData.posts);
+          setBlogPosts(publishedPosts);
         } else {
-          setBlogPosts((prevPosts) => [...prevPosts, ...postsData.posts]);
+          setBlogPosts((prevPosts) => [...prevPosts, ...publishedPosts]);
         }
 
         // ตอนกำลัง search ให้ซ่อนปุ่ม Load More (เราโหลดเป็น batch ใหญ่ครั้งเดียว)
@@ -221,6 +249,7 @@ function ArticleSection() {
                 title={post.title}
                 description={post.description}
                 author={post.author}
+                authorProfilePic={post.authorProfilePic}
                 date={post.date}
                 onClick={() => handleNavigate(post.id)}
               />
