@@ -1,4 +1,4 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import {
   NotebookPen,
   Folder,
@@ -8,12 +8,16 @@ import {
   SquareArrowOutUpRight,
   RotateCcw,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 const linkBase =
   "flex h-[64px] w-[280px] items-center gap-3 px-6 py-5 text-body-1 text-brown-400 transition-colors hover:bg-brown-300";
 const linkActive = "bg-brown-300 text-brown-600";
 
 export default function AdminSidebar() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
   return (
     <aside className="flex h-[1024px] w-[280px] shrink-0 flex-col border-r border-brown-200 bg-brown-200 py-4">
       <div className="mb-0 flex h-[212px] w-[280px] flex-col gap-1 border-b border-brown-200 px-6 py-[60px]">
@@ -83,13 +87,17 @@ export default function AdminSidebar() {
           <SquareArrowOutUpRight className="size-5 shrink-0" />
           Vora W. Website
         </Link>
-        <a
-          href="#logout"
+        <button
+          type="button"
           className={`${linkBase} border-t border-brown-300`}
+          onClick={() => {
+            logout();
+            navigate("/admin/auth/login");
+          }}
         >
           <LogOut className="size-5 shrink-0" />
           Log out
-        </a>
+        </button>
       </div>
     </aside>
   );
